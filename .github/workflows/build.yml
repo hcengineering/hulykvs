@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Get version from Cargo.toml.
+        id: cargo
+        uses: dante-signal31/rust-app-version@v1.2.0
+        with:
+          cargo_toml_folder: hulykvs_server/
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          file: hulykvs_server/Dockerfile
+          push: true
+          tags: "ghcr.io/aav/hulykvs:${{ steps.cargo.outputs.app_version }}"
+
+
