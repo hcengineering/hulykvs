@@ -33,6 +33,6 @@ jobs:
         with:
           file: hulykvs_server/Dockerfile
           push: true
-          tags: "ghcr.io/aav/hulykvs:${{ steps.cargo.outputs.app_version }}"
+          tags: "ghcr.io/hcengineering/hulykvs:${{ steps.cargo.outputs.app_version }}"
 
 
