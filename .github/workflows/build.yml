@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,12 +16,8 @@ jobs:
         with:
           username: ${{ vars.DOCKER_USER }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-          
-      - name: Get version from Cargo.toml.
-        id: cargo
-        uses: dante-signal31/rust-app-version@v1.2.0
-        with:
-          cargo_toml_folder: hulykvs_server/
+
+      - run: echo VERSION=$(grep '^version =' hulykvs_server/Cargo.toml | cut -d '"' -f 2) >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -31,7 +27,7 @@ jobs:
         with:
           file: hulykvs_server/Dockerfile
           push: true
-          tags: "${{ vars.DOCKER_USER }}/hulykvs:${{ steps.cargo.outputs.app_version }}"
+          tags: "${{ vars.DOCKER_USER }}/hulykvs:${{ env.VERSION }},${{ vars.DOCKER_USER }}/hulykvs:latest"
           platforms: linux/amd64,linux/arm64 
 
 
