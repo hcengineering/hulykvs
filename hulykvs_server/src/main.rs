@@ -85,6 +85,11 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("{}/{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
 
+    tracing::debug!(
+        connection = CONFIG.db_connection,
+        "database connection string"
+    );
+
     let manager = bb8_postgres::PostgresConnectionManager::new_from_stringlike(
         &CONFIG.db_connection,
         tokio_postgres::NoTls,
