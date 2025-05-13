@@ -3,5 +3,5 @@ bind_host = "0.0.0.0"
 
 token_secret = "secret"
 
-db_connection = "host=localhost user=root port=26257"
+db_connection = "postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
 db_scheme = "hulykvs"
