@@ -71,7 +71,7 @@ impl bb8::CustomizeConnection<pg::Client, pg::Error> for ConnectionCustomizer {
     ) -> Pin<Box<dyn Future<Output = Result<(), pg::Error>> + Send + 'a>> {
         Box::pin(async {
             client
-                .execute("set search_path to $1", &[&CONFIG.db_namespace])
+                .execute("set search_path to $1", &[&CONFIG.db_scheme])
                 .await
                 .unwrap();
             Ok(())
@@ -103,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
         // query params cannot be bound in ddl statements
         connection
             .execute(
-                &format!("create schema if not exists {}", CONFIG.db_namespace),
+                &format!("create schema if not exists {}", CONFIG.db_scheme),
                 &[],
             )
             .await?;

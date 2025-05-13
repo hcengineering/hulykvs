@@ -4,4 +4,4 @@ bind_host = "0.0.0.0"
 token_secret = "secret"
 
 db_connection = "host=localhost user=root port=26257"
-db_namespace = "hulykvs"
+db_scheme = "hulykvs"

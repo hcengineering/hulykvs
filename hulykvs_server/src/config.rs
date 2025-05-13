@@ -26,7 +26,7 @@ pub struct Config {
     pub token_secret: String,
 
     pub db_connection: String,
-    pub db_namespace: String,
+    pub db_scheme: String,
 }
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
