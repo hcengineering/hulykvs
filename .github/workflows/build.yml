@@ -1,4 +1,4 @@
-name: Build
+name: Hulykvs
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout 
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Log to registry
@@ -22,12 +22,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           file: hulykvs_server/Dockerfile
           push: true
           tags: "${{ vars.DOCKER_USER }}/service_hulykvs:${{ env.VERSION }},${{ vars.DOCKER_USER }}/service_hulykvs:latest"
-          platforms: linux/amd64,linux/arm64 
-
-
+          platforms: linux/amd64,linux/arm64

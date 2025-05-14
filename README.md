@@ -65,7 +65,7 @@ Database schema is created automatically on startup. Database objects are also c
 - [ ] Concurrency control for database migration (several instances of hulykvs are updated at the same time)
 - [ ] TLS support
 - [ ] Namespacee based access control
-- [ ] Liveness/rediness probe endpoint 
+- [ ] Liveness/readiness probe endpoint 
 
 ## Contributing
 Contributions are welcome! Please open an issue or a pull request if you have any suggestions or improvements.
