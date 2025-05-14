@@ -27,7 +27,7 @@ jobs:
         with:
           file: hulykvs_server/Dockerfile
           push: true
-          tags: "${{ vars.DOCKER_USER }}/hulykvs:${{ env.VERSION }},${{ vars.DOCKER_USER }}/hulykvs:latest"
+          tags: "${{ vars.DOCKER_USER }}/service_hulykvs:${{ env.VERSION }},${{ vars.DOCKER_USER }}/service_hulykvs:latest"
           platforms: linux/amd64,linux/arm64 
 
 
