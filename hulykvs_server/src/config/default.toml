@@ -5,3 +5,5 @@ token_secret = "secret"
 
 db_connection = "postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
 db_scheme = "hulykvs"
+
+payload_size_limit = "2mb"

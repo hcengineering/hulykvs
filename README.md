@@ -53,6 +53,7 @@ The following environment variables are used to configure hulykvs:
    - ```HULY_TOKEN_SECRET```: secret used to sign JWT tokens (default: secret)
    - ```HULY_BIND_HOST```: host to bind the server to (default: 0.0.0.0)
    - ```HULY_BIND_PORT```: port to bind the server to (default: 8094)
+   - ```HULY_PAYLOAD_SIZE_LIMIT```: maximum size of the payload (default: 2Mb)
 
 ## Databse DDL
 Database schema is created automatically on startup. Database objects are also created or migrated automatically on startup. 

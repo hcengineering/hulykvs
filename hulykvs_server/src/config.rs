@@ -27,6 +27,8 @@ pub struct Config {
 
     pub db_connection: String,
     pub db_scheme: String,
+
+    pub payload_size_limit: size::Size,
 }
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {

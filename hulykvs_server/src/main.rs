@@ -21,7 +21,7 @@ use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
     middleware::{self, Next},
-    web::{self, Data},
+    web::{self, Data, PayloadConfig},
 };
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres as pg;
@@ -124,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let socket = std::net::SocketAddr::new(CONFIG.bind_host.as_str().parse()?, CONFIG.bind_port);
+    let payload_config = PayloadConfig::new(CONFIG.payload_size_limit.bytes() as usize);
 
     let server = HttpServer::new(move || {
         let cors = Cors::default()
@@ -134,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
             .max_age(3600);
 
         App::new()
+            .app_data(payload_config.clone())
             .app_data(Data::new(pool.clone()))
             .wrap(middleware::Logger::default())
             .wrap(cors)
