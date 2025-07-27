@@ -22,16 +22,17 @@ use tracing::{error, trace};
 
 use super::Pool;
 
-type BucketPath = web::Path<String>;
-type ObjectPath = web::Path<(String, String)>;
+type BucketPath = web::Path<(String, String)>;
+type ObjectPath = web::Path<(String, String, String)>;
 
 pub async fn get(
     path: ObjectPath,
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-    let (namespace, key) = path.into_inner();
-    trace!(namespace, key, "post request");
+    let (workspace, namespace, key) = path.into_inner();
+    trace!(workspace, namespace, key, "get request");
 
+    let wsstr = workspace.as_str();
     let nsstr = namespace.as_str();
     let keystr = key.as_str();
 
@@ -42,7 +43,7 @@ pub async fn get(
            select value from kvs where workspace=$1 and namespace=$2 and key=$3
         "#;
 
-        let result = connection.query(statement, &[&"defaultspace", &nsstr, &keystr]).await?;
+        let result = connection.query(statement, &[&wsstr, &nsstr, &keystr]).await?;
 
         let response = match result.as_slice() {
             [] => HttpResponse::NotFound().finish(),
@@ -54,19 +55,22 @@ pub async fn get(
     }()
     .await
     .map_err(|error| {
-        error!(op = "get", namespace, key, ?error, "internal error");
+        error!(op = "get", workspace, namespace, key, ?error, "internal error");
         error::ErrorInternalServerError("")
     })
 }
+
+
 
 pub async fn post(
     path: ObjectPath,
     pool: Data<Pool>,
     body: web::Bytes,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-    let (namespace, key) = path.into_inner();
-    trace!(namespace, key, "post request");
+    let (workspace, namespace, key) = path.into_inner();
+    trace!(workspace, namespace, key, "post request");
 
+    let wsstr = workspace.as_str();
     let nsstr = namespace.as_str();
     let keystr = key.as_str();
 
@@ -76,34 +80,37 @@ pub async fn post(
         let md5 = md5::compute(&body);
 
         let statement = r#"
-           insert into kvs(workspace, namespace, key, md5, value) 
-           values($1, $2, $3, $4, $5)
-           on conflict(workspace, workspace, namespace, key)
-           do update set 
-            md5=excluded.md5, 
-            value=excluded.value
+            INSERT INTO kvs(workspace, namespace, key, md5, value)
+            VALUES($1, $2, $3, $4, $5)
+            ON CONFLICT (workspace, namespace, key)
+            DO UPDATE SET 
+                md5 = excluded.md5,
+                value = excluded.value
         "#;
 
         connection
-            .execute(statement, &[&"defaultspace", &nsstr, &keystr, &&md5[..], &&body[..]])
+            .execute(statement, &[&wsstr, &nsstr, &keystr, &&md5[..], &&body[..]])
             .await?;
 
         Ok(HttpResponse::NoContent().finish())
     }()
     .await
     .map_err(|error| {
-        error!(op = "upsert", namespace, key, ?error, "internal error");
+        error!(op = "upsert", workspace, namespace, key, ?error, "internal error");
         error::ErrorInternalServerError("")
     })
 }
+
+
 
 pub async fn delete(
     path: ObjectPath,
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-    let (namespace, key) = path.into_inner();
-    trace!(namespace, key, "delete request");
+    let (workspace, namespace, key) = path.into_inner();
+    trace!(workspace, namespace, key, "delete request");
 
+    let wsstr = workspace.as_str();
     let nsstr = namespace.as_str();
     let keystr = key.as_str();
 
@@ -111,10 +118,10 @@ pub async fn delete(
         let connection = pool.get().await?;
 
         let statement = r#"
-           delete from kvs where workspace=$1 and namespace=$2 and key=$3
+            DELETE FROM kvs WHERE workspace=$1 AND namespace=$2 AND key=$3
         "#;
 
-        let response = match connection.execute(statement, &[&"defaultspace", &nsstr, &keystr]).await? {
+        let response = match connection.execute(statement, &[&wsstr, &nsstr, &keystr]).await? {
             1 => HttpResponse::NoContent(),
             0 => HttpResponse::NotFound(),
             _ => panic!("multiple rows deleted, unique constraint is probably violated"),
@@ -124,10 +131,11 @@ pub async fn delete(
     }()
     .await
     .map_err(|error| {
-        error!(op = "delete", namespace, key, ?error, "internal error");
+        error!(op = "delete", workspace, namespace, key, ?error, "internal error");
         error::ErrorInternalServerError("")
     })
 }
+
 
 #[derive(Deserialize)]
 pub struct ListInfo {
@@ -136,6 +144,7 @@ pub struct ListInfo {
 
 #[derive(Serialize)]
 pub struct ListResponse {
+    workspace: String,
     namespace: String,
     count: usize,
     keys: Vec<String>,
@@ -146,9 +155,10 @@ pub async fn list(
     pool: Data<Pool>,
     query: Query<ListInfo>,
 ) -> Result<Json<ListResponse>, actix_web::error::Error> {
-    let namespace = path.into_inner();
-    trace!(namespace, prefix = ?query.prefix, "enumerate request");
+    let (workspace, namespace) = path.into_inner();
+    trace!(workspace, namespace, prefix = ?query.prefix, "list request");
 
+    let wsstr = workspace.as_str();
     let nsstr = namespace.as_str();
 
     async move || -> anyhow::Result<Json<ListResponse>> {
@@ -160,32 +170,36 @@ pub async fn list(
                 select key from kvs where workspace=$1 and namespace=$2 and key like $3
             "#;
 
-            connection.query(statement, &[&"defaultspace",&nsstr, &pattern]).await?
+            connection.query(statement, &[&wsstr, &nsstr, &pattern]).await?
         } else {
             let statement = r#"
                 select key from kvs where workspace=$1 and namespace=$2
             "#;
 
-            connection.query(statement, &[&"defaultspace",&nsstr]).await?
+            connection.query(statement, &[&wsstr, &nsstr]).await?
         };
 
         let count = response.len();
 
-        let mut keys = Vec::new();
+        let keys = response.into_iter().map(|row| row.get(0)).collect();
 
+/*
+        let mut keys = Vec::new();
         for row in response {
             keys.push(row.get::<_, String>(0));
         }
+*/
 
         Ok(Json(ListResponse {
             keys,
             count,
             namespace: nsstr.to_owned(),
+            workspace: wsstr.to_owned(),
         }))
     }()
     .await
     .map_err(|error| {
-        error!(op = "list", namespace, ?error, "internal error");
+        error!(op = "list", workspace, namespace, ?error, "internal error");
         error::ErrorInternalServerError("")
     })
 }
