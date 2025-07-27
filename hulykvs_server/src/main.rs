@@ -29,6 +29,7 @@ use tracing::info;
 
 mod config;
 mod handlers;
+mod handlers_v2;
 mod token;
 
 use config::CONFIG;
@@ -147,6 +148,14 @@ async fn main() -> anyhow::Result<()> {
                     .route("/{bucket}/{id}", web::post().to(handlers::post))
                     .route("/{bucket}/{id}", web::delete().to(handlers::delete)),
             )
+	    .service(
+	        web::scope("/api2")
+	            .wrap(middleware::from_fn(interceptor))
+	            .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
+	            .route("/{workspace}/{bucket}/{id}", web::get().to(handlers_v2::get))
+	            .route("/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::post))
+	            .route("/{workspace}/{bucket}/{id}", web::delete().to(handlers_v2::delete)),
+	    )
             .route("/status", web::get().to(async || "ok"))
     })
     .bind(socket)?
