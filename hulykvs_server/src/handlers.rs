@@ -32,7 +32,7 @@ pub async fn get(
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
     let (namespace, key) = path.into_inner();
-    trace!(namespace, key, "post request");
+    trace!(namespace, key, "get request");
 
     let nsstr = namespace.as_str();
     let keystr = key.as_str();
