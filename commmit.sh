@@ -2,11 +2,7 @@
 
 clear
 
-#git checkout -b feature/workspace-support
+#git checkout -b feature/db_uuid_migrate
 git add .
-git commit -m "Add API v2 with workspace"
-
-exit
-
-
-git push origin feature/workspace-support
+#git commit -m "Add API v2 with workspace"
+#git push origin feature/workspace-support

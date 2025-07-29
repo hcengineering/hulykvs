@@ -29,6 +29,8 @@ pub struct Config {
     pub db_scheme: String,
 
     pub payload_size_limit: size::Size,
+
+    pub default_workspace_uuid: String,
 }
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {

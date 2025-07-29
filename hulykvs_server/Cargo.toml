@@ -19,7 +19,13 @@ bb8-postgres = "0.9.0"
 md5 = "0.7.0"
 jsonwebtoken = "9.3.1"
 size = { version = "0.5.0", features = ["serde"] }
+uuid = { version = "1.7", features = ["v4"] }
+regex = "1.10"
 
 [[bin]]
 name = "hulykvs"
 path = "src/main.rs"
+
+[build-dependencies]
+regex = "1"
+
