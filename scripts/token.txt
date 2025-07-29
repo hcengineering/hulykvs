@@ -1,0 +1,41 @@
+Token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHRyYSI6eyJzZXJ2aWNlIjoiYWNjb3VudCJ9LCJhY2NvdW50IjoiYTE3ZDdjMGEtMDkwMi00NDMzLWI1M2ItMmE0NWFkMjQ4NWI4Iiwid29ya3NwYWNlIjoiYmI3OTNlYzEtMjUyZS00NDE5LTg5OTgtN2YyMjBhYmFiZGZhIn0.rvCR1fx-_T0zbHqSdk4PuZV4rbM5eyKCKpJZV4E_13E; path=
+
+jwt.io
+
+{
+  "extra": {
+    "service": "account"
+  },
+  "account": "a17d7c0a-0902-4433-b53b-2a45ad2485b8",
+  "workspace": "bb793ec1-252e-4419-8998-7f220ababdfa"
+}
+
+https://github.com/hcengineering/hulyrs - взять отсюда jws.rs
+
+pub fn is_system(&self) -> bool { ... ВСЁ!!!
+pub fn is_guest(&self) -> bool { ... ЗАПРЕТИТЬ!!!
+pub fn is_user(&self) -> bool { ... ТОЛЬКО В СВОЕМ ВОРКСПЕЙСЕ!!! проверить по berear точно в хедерах
+
+1) https://www.cockroachlabs.com/docs/stable/alter-table#alter-primary-key
+2) база - специальный тип uuid (128 = 16 байт)
+
+дефолтный uuid
+
+    Optimistic loc
+
+Если в запросе в специальном хедере md5, то предварительно проверить
+залочить запись
+- если не совпал - статус конфликт 4...
+- совпадает или не существует - апдейт
+
+сейчас есть "upsert"
+а надо добавить:
+    -- строго insert
+    -- и строго update: без проверки md5
+
+Артём Савченко - мейл
+Денис Быков - календарь
+
+diil
+deel
+
