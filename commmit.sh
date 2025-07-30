@@ -2,7 +2,9 @@
 
 clear
 
-#git checkout -b feature/db_uuid_migrate
+NAME="insert_update"
+
+git checkout -b feature/${NAME}
 git add .
-#git commit -m "Add API v2 with workspace"
-#git push origin feature/workspace-support
+git commit -m "Add /api2/insert /api2/update; fix migrate; fix uuid"
+git push origin feature/${NAME}

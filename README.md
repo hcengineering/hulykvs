@@ -9,6 +9,14 @@ Create a key-value pair api
 Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returs 204 (NoContent) on sucesss.
 
 
+```POST /api2/insert/{workspace}/{namespace}/{key}```
+Inserts a new key-value pair. Fails if the key already exists. Returs 204 (NoContent) on sucesss.
+
+
+```POST /api2/update/{workspace}/{namespace}/{key}```
+Updates an existing key-value pair. Fails if the key does not exist. Returs 204 (NoContent) on sucesss.
+
+
 ```GET /api2/{workspace}/{namespace}/{key}```
 Retrieves the value for the given key in the given namespace. Returns 404 if the key does not exist.
 
@@ -35,10 +43,8 @@ Create a key-value pair
 ```POST /api/{namespace}/{key}```
 Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returs 204 (NoContent) on sucesss.
 
-
 ```GET /api/{namespace}/{key}```
 Retrieves the value for the given key in the given namespace. Returns 404 if the key does not exist.
-
 
 ```DELETE /api/{namespace}/{key}```
 Deletes the key-value pair for the given key in the given namespace. Returns 404 if the key does not exist, 204 (NoContent) on success, 404 if the key does not exist.

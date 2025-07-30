@@ -154,6 +154,8 @@ async fn main() -> anyhow::Result<()> {
 	            .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
 	            .route("/{workspace}/{bucket}/{id}", web::get().to(handlers_v2::get))
 	            .route("/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::post))
+	            .route("/insert/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::insert))
+	            .route("/update/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::update))
 	            .route("/{workspace}/{bucket}/{id}", web::delete().to(handlers_v2::delete)),
 	    )
             .route("/status", web::get().to(async || "ok"))

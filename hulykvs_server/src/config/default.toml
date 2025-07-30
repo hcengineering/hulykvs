@@ -8,5 +8,5 @@ db_scheme = "hulykvs"
 
 payload_size_limit = "2mb"
 
-default_workspace_uuid = "bb793ec1-252e-4419-8998-7f220ababdfa"
+default_workspace_uuid = "00000000-0000-0000-0000-000000000000"
 
