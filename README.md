@@ -2,16 +2,49 @@
 
 Hulykvs is a simple key-value store service implemented in Rust. It uses cockroachdb as the backend and provides a simple http api for storing and retrieving key-value pairs.
 
-## API
+## API v2
+Create a key-value pair api
+
+```POST /api2/{workspace}/{namespace}/{key}```
+Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returs 204 (NoContent) on sucesss.
+
+
+```POST /api2/insert/{workspace}/{namespace}/{key}```
+Inserts a new key-value pair. Fails if the key already exists. Returs 204 (NoContent) on sucesss.
+
+
+```POST /api2/update/{workspace}/{namespace}/{key}```
+Updates an existing key-value pair. Fails if the key does not exist. Returs 204 (NoContent) on sucesss.
+
+
+```GET /api2/{workspace}/{namespace}/{key}```
+Retrieves the value for the given key in the given namespace. Returns 404 if the key does not exist.
+
+
+```DELETE /api2/{workspace}/{namespace}/{key}```
+Deletes the key-value pair for the given key in the given namespace. Returns 404 if the key does not exist, 204 (NoContent) on success, 404 if the key does not exist.
+
+
+```GET /api2/{workspace}/{namespace}?[prefix=<prefix>]```
+Retrieves all key-value pairs in the given namespace. Optionally, a prefix can be provided to filter the results. The following structure is returned:
+```json
+{
+  "workspace": "workspace",
+  "namespace": "namespace",
+  "count": 3,
+  "keys": ["key1", "key2", "keyN"]
+}
+```
+## API (old)
+workspace = "defaultspace"
+
 Create a key-value pair
 
 ```POST /api/{namespace}/{key}```
 Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returs 204 (NoContent) on sucesss.
 
-
 ```GET /api/{namespace}/{key}```
 Retrieves the value for the given key in the given namespace. Returns 404 if the key does not exist.
-
 
 ```DELETE /api/{namespace}/{key}```
 Deletes the key-value pair for the given key in the given namespace. Returns 404 if the key does not exist, 204 (NoContent) on success, 404 if the key does not exist.
@@ -20,14 +53,14 @@ Deletes the key-value pair for the given key in the given namespace. Returns 404
 Retrieves all key-value pairs in the given namespace. Optionally, a prefix can be provided to filter the results. The following structure is returned:
 ```json
 {
-  "namespace": "namespace",  
+  "namespace": "namespace",
   "count": 3,
   "keys": ["key1", "key2", "keyN"]
 }
 ```
- 
+
 ## Running
-Pre-build docker images is available at: hardcoreeng/service_hulykvs:{tag}. 
+Pre-build docker images is available at: hardcoreeng/service_hulykvs:{tag}.
 
 You can use the following command to run the image locally:
 ```bash

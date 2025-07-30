@@ -13,6 +13,8 @@
 // limitations under the License.
 //
 
+use crate::config::CONFIG;
+
 use actix_web::{
     HttpResponse, error,
     web::{self, Data, Json, Query},
@@ -39,10 +41,10 @@ pub async fn get(
         let connection = pool.get().await?;
 
         let statement = r#"
-           select value from kvs where namespace=$1 and key=$2
+           select value from kvs where workspace=$1 and namespace=$2 and key=$3
         "#;
 
-        let result = connection.query(statement, &[&nsstr, &keystr]).await?;
+        let result = connection.query(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr]).await?;
 
         let response = match result.as_slice() {
             [] => HttpResponse::NotFound().finish(),
@@ -76,16 +78,16 @@ pub async fn post(
         let md5 = md5::compute(&body);
 
         let statement = r#"
-           insert into kvs(namespace, key, md5, value) 
-           values($1, $2, $3, $4)
-           on conflict(namespace, key)
+           insert into kvs(workspace, namespace, key, md5, value) 
+           values($1, $2, $3, $4, $5)
+           on conflict(workspace, workspace, namespace, key)
            do update set 
             md5=excluded.md5, 
             value=excluded.value
         "#;
 
         connection
-            .execute(statement, &[&nsstr, &keystr, &&md5[..], &&body[..]])
+            .execute(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr, &&md5[..], &&body[..]])
             .await?;
 
         Ok(HttpResponse::NoContent().finish())
@@ -96,6 +98,7 @@ pub async fn post(
         error::ErrorInternalServerError("")
     })
 }
+
 
 pub async fn delete(
     path: ObjectPath,
@@ -111,10 +114,10 @@ pub async fn delete(
         let connection = pool.get().await?;
 
         let statement = r#"
-           delete from kvs where namespace=$1 and key=$2
+           delete from kvs where workspace=$1 and namespace=$2 and key=$3
         "#;
 
-        let response = match connection.execute(statement, &[&nsstr, &keystr]).await? {
+        let response = match connection.execute(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr]).await? {
             1 => HttpResponse::NoContent(),
             0 => HttpResponse::NotFound(),
             _ => panic!("multiple rows deleted, unique constraint is probably violated"),
@@ -157,16 +160,16 @@ pub async fn list(
         let response = if let Some(prefix) = &query.prefix {
             let pattern = format!("{}%", prefix);
             let statement = r#"
-                select key from kvs where namespace=$1 and key like $2
+                select key from kvs where workspace=$1 and namespace=$2 and key like $3
             "#;
 
-            connection.query(statement, &[&nsstr, &pattern]).await?
+            connection.query(statement, &[&CONFIG.default_workspace_uuid,&nsstr, &pattern]).await?
         } else {
             let statement = r#"
-                select key from kvs where namespace=$1
+                select key from kvs where workspace=$1 and namespace=$2
             "#;
 
-            connection.query(statement, &[&nsstr]).await?
+            connection.query(statement, &[&CONFIG.default_workspace_uuid,&nsstr]).await?
         };
 
         let count = response.len();

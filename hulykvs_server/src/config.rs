@@ -18,6 +18,8 @@ use std::{path::Path, sync::LazyLock};
 use config::FileFormat;
 use serde::Deserialize;
 
+use uuid::Uuid;
+
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub bind_port: u16,
@@ -29,6 +31,8 @@ pub struct Config {
     pub db_scheme: String,
 
     pub payload_size_limit: size::Size,
+
+    pub default_workspace_uuid: Uuid,
 }
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
