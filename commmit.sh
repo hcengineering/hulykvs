@@ -2,7 +2,7 @@
 
 clear
 
-NAME="insert_update"
+NAME="insert_update_uuid"
 
 git checkout -b feature/${NAME}
 git add .
