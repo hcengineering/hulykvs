@@ -9,5 +9,5 @@ NAME="insert_update"
 
 git checkout -b feature/${NAME}
 git add .
-git commit -m "Add /api2/insert /api2/update; fix migrate; fix uuid"
+git commit -m "Add headers for md5: ETag, If-Match, If-None-Match ; tests; authorization politics with token & workspace"
 git push origin feature/${NAME}

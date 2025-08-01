@@ -120,7 +120,20 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
         for m in report.applied_migrations().iter() {
-            info!(migration = m.to_string(), "applied migration")
+            // Patch default from Config
+            if m.to_string() == "V4__workspace_uuid" {
+                let sql = format!(
+                    "UPDATE kvs SET workspace = '{}' WHERE workspace = 'f7c9c6d2-81d7-5ff4-9f42-8ab129bb12f0';",
+                    CONFIG.default_workspace_uuid
+                );
+                connection.execute(&sql, &[]).await?;
+                info!(
+                    migration = "f7c9c6d2-81d7-5ff4-9f42-8ab129bb12f0",
+                    "applied migration patch"
+                );
+            }
+
+            info!(migration = m.to_string(), "applied migration");
         }
     }
 
@@ -148,16 +161,14 @@ async fn main() -> anyhow::Result<()> {
                     .route("/{bucket}/{id}", web::post().to(handlers::post))
                     .route("/{bucket}/{id}", web::delete().to(handlers::delete)),
             )
-	    .service(
-	        web::scope("/api2")
-	            .wrap(middleware::from_fn(interceptor))
-	            .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
-	            .route("/{workspace}/{bucket}/{id}", web::get().to(handlers_v2::get))
-	            .route("/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::post))
-	            .route("/insert/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::insert))
-	            .route("/update/{workspace}/{bucket}/{id}", web::post().to(handlers_v2::update))
-	            .route("/{workspace}/{bucket}/{id}", web::delete().to(handlers_v2::delete)),
-	    )
+            .service(
+                web::scope("/api2")
+                    .wrap(middleware::from_fn(interceptor))
+                    .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
+                    .route("/{workspace}/{bucket}/{id}", web::get().to(handlers_v2::get))
+                    .route("/{workspace}/{bucket}/{id}", web::put().to(handlers_v2::put))
+                    .route("/{workspace}/{bucket}/{id}", web::delete().to(handlers_v2::delete)),
+            )
             .route("/status", web::get().to(async || "ok"))
     })
     .bind(socket)?

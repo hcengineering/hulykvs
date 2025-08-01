@@ -5,16 +5,20 @@ Hulykvs is a simple key-value store service implemented in Rust. It uses cockroa
 ## API v2
 Create a key-value pair api
 
-```POST /api2/{workspace}/{namespace}/{key}```
-Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returs 204 (NoContent) on sucesss.
+```PUT /api2/{workspace}/{namespace}/{key}```
+Stores request payload as the value for the given key in the given namespace. Existing keys will be overwritten. Returns 204 (NoContent) on success.
 
+**Optional headers:**
 
-```POST /api2/insert/{workspace}/{namespace}/{key}```
-Inserts a new key-value pair. Fails if the key already exists. Returs 204 (NoContent) on sucesss.
+- `If-Match: *` — update only if the key exists
+- `If-Match: <md5>` — update only if current value's MD5 matches
+- `If-None-Match: *` — insert only if the key does not exist
 
-
-```POST /api2/update/{workspace}/{namespace}/{key}```
-Updates an existing key-value pair. Fails if the key does not exist. Returs 204 (NoContent) on sucesss.
+Returns:
+- `204` on successful insert or update
+- `201` if inserted with `If-None-Match: *`
+- `412` if the condition is not met
+- `400` if headers are invalid
 
 
 ```GET /api2/{workspace}/{namespace}/{key}```

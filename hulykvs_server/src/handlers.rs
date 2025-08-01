@@ -44,7 +44,12 @@ pub async fn get(
            select value from kvs where workspace=$1 and namespace=$2 and key=$3
         "#;
 
-        let result = connection.query(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr]).await?;
+        let result = connection
+            .query(
+                statement,
+                &[&CONFIG.default_workspace_uuid, &nsstr, &keystr],
+            )
+            .await?;
 
         let response = match result.as_slice() {
             [] => HttpResponse::NotFound().finish(),
@@ -87,7 +92,16 @@ pub async fn post(
         "#;
 
         connection
-            .execute(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr, &&md5[..], &&body[..]])
+            .execute(
+                statement,
+                &[
+                    &CONFIG.default_workspace_uuid,
+                    &nsstr,
+                    &keystr,
+                    &&md5[..],
+                    &&body[..],
+                ],
+            )
             .await?;
 
         Ok(HttpResponse::NoContent().finish())
@@ -98,7 +112,6 @@ pub async fn post(
         error::ErrorInternalServerError("")
     })
 }
-
 
 pub async fn delete(
     path: ObjectPath,
@@ -117,7 +130,13 @@ pub async fn delete(
            delete from kvs where workspace=$1 and namespace=$2 and key=$3
         "#;
 
-        let response = match connection.execute(statement, &[&CONFIG.default_workspace_uuid, &nsstr, &keystr]).await? {
+        let response = match connection
+            .execute(
+                statement,
+                &[&CONFIG.default_workspace_uuid, &nsstr, &keystr],
+            )
+            .await?
+        {
             1 => HttpResponse::NoContent(),
             0 => HttpResponse::NotFound(),
             _ => panic!("multiple rows deleted, unique constraint is probably violated"),
@@ -163,13 +182,20 @@ pub async fn list(
                 select key from kvs where workspace=$1 and namespace=$2 and key like $3
             "#;
 
-            connection.query(statement, &[&CONFIG.default_workspace_uuid,&nsstr, &pattern]).await?
+            connection
+                .query(
+                    statement,
+                    &[&CONFIG.default_workspace_uuid, &nsstr, &pattern],
+                )
+                .await?
         } else {
             let statement = r#"
                 select key from kvs where workspace=$1 and namespace=$2
             "#;
 
-            connection.query(statement, &[&CONFIG.default_workspace_uuid,&nsstr]).await?
+            connection
+                .query(statement, &[&CONFIG.default_workspace_uuid, &nsstr])
+                .await?
         };
 
         let count = response.len();

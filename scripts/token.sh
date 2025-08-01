@@ -8,6 +8,9 @@ if [ -z "$SECRET" ]; then
   exit 1
 fi
 
-TOKEN=$(echo -n "${SECRET}" | jwt -alg HS256 -key - -sign claims.json)
+claims=$1 # "claims.json"
+
+#TOKEN=$(echo -n "${SECRET}" | jwt -alg HS256 -key - -sign claims.json)
+TOKEN=$(echo -n "${SECRET}" | jwt -alg HS256 -key - -sign ${claims})
 
 echo "$TOKEN"
