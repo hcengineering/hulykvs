@@ -21,7 +21,7 @@ use actix_web::{
     web::{self, Data, Json, Query},
 };
 
-use crate::token::Claims;
+use hulyrs::services::jwt::Claims;
 
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
@@ -31,13 +31,6 @@ use super::Pool;
 type BucketPath = web::Path<(String, String)>;
 type ObjectPath = web::Path<(String, String, String)>;
 
-//           ____   _____   _____
-//          / ___| | ____| |_   _|
-//         | |  _  |  _|     | |
-//         | |_| | | |___    | |
-//          \____| |_____|   |_|
-//
-// /api2/workspace/namespace/key
 
 pub async fn get(
     req: HttpRequest,
@@ -45,7 +38,7 @@ pub async fn get(
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
 
-    workspace_owner(&req)?; // Chech workspace
+    workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
     trace!(workspace, namespace, key, "get request");
@@ -97,15 +90,6 @@ pub async fn get(
 }
 
 
-
-//          ____   ___  ____ _____                                 _           _
-//         |  _ \ / _ \/ ___|_   _|            _   _   _ __     __| |   __ _  | |_    ___
-//         | |_) | | | \___ \ | |     _____   | | | | | '_ \   / _` |  / _` | | __|  / _ \
-//         |  __/| |_| |___) || |    |_____|  | |_| | | |_) | | (_| | | (_| | | |_  |  __/
-//         |_|    \___/|____/ |_|              \__,_| | .__/   \__,_|  \__,_|  \__|  \___|
-//                                                    |_|
-// PUT
-
 pub async fn put(
     req: HttpRequest,
     path: ObjectPath,
@@ -113,7 +97,7 @@ pub async fn put(
     body: web::Bytes,
 ) -> Result<HttpResponse, actix_web::error::Error> {
 
-    workspace_owner(&req)?; // Chech workspace
+    workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
     trace!(workspace, namespace, key, "update request");
@@ -243,12 +227,6 @@ pub async fn put(
     })
 }
 
-//          ____    _____   _       _____   _____   _____
-//         |  _ \  | ____| | |     | ____| |_   _| | ____|
-//         | | | | |  _|   | |     |  _|     | |   |  _|
-//         | |_| | | |___  | |___  | |___    | |   | |___
-//         |____/  |_____| |_____| |_____|   |_|   |_____|
-//
 
 pub async fn delete(
     req: HttpRequest,
@@ -256,7 +234,7 @@ pub async fn delete(
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
 
-    workspace_owner(&req)?; // Chech workspace
+    workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
     trace!(workspace, namespace, key, "delete request");
@@ -311,14 +289,6 @@ pub struct ListResponse {
     keys: Vec<String>,
 }
 
-//          _       ___   ____    _____
-//         | |     |_ _| / ___|  |_   _|
-//         | |      | |  \___ \    | |
-//         | |___   | |   ___) |   | |
-//         |_____| |___| |____/    |_|
-//
-
-
 pub async fn list(
     req: HttpRequest,
     path: BucketPath,
@@ -326,7 +296,7 @@ pub async fn list(
     query: Query<ListInfo>,
 ) -> Result<Json<ListResponse>, actix_web::error::Error> {
 
-    workspace_owner(&req)?; // Chech workspace
+    workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace) = path.into_inner();
     trace!(workspace, namespace, prefix = ?query.prefix, "list request");
@@ -384,15 +354,24 @@ pub fn workspace_owner(req: &HttpRequest) -> Result<(), Error> {
         .get::<Claims>()
         .ok_or_else(|| error::ErrorUnauthorized("Missing auth claims"))?;
 
+    // is_system - allowed to all
+    if claims.is_system() {
+        return Ok(());
+    }
+
+    // else - check workplace
     let jwt_workspace = claims
         .workspace
-        .as_deref()
+	.as_ref()
         .ok_or_else(|| error::ErrorForbidden("Missing workspace in token"))?;
 
     let path_ws = req.match_info().get("workspace")
         .ok_or_else(|| error::ErrorBadRequest("Missing workspace in URL path"))?;
 
-    if jwt_workspace != path_ws {
+    let path_ws_uuid = Uuid::parse_str(path_ws)
+	.map_err(|_| error::ErrorBadRequest("Invalid workspace UUID"))?;
+
+    if jwt_workspace != &path_ws_uuid {
         return Err(error::ErrorForbidden("Workspace mismatch"));
     }
 

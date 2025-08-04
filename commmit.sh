@@ -7,7 +7,7 @@ clear
 
 NAME="final_tears"
 
-git checkout -b feature/${NAME}
+# git checkout -b feature/${NAME}
 git add .
-git commit -m "Add headers for md5: ETag, If-Match, If-None-Match ; tests; authorization politics with token & workspace"
+git commit -m "Fix workspace JWT"
 git push origin feature/${NAME}

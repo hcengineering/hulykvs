@@ -1,4 +1,5 @@
 /target
+/scripts/off
 Justfile
 commit.sh
 GO.sh

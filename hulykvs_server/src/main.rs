@@ -17,6 +17,7 @@ use std::pin::Pin;
 
 use actix_cors::Cors;
 use actix_web::{
+    Error,
     App, HttpMessage, HttpServer,
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
@@ -30,10 +31,12 @@ use tracing::info;
 mod config;
 mod handlers;
 mod handlers_v2;
-mod token;
 
 use config::CONFIG;
-use token::ServiceRequestExt;
+
+use hulyrs::services::jwt::actix::ServiceRequestExt;
+use secrecy::SecretString;
+
 
 pub type Pool = bb8::Pool<PostgresConnectionManager<tokio_postgres::NoTls>>;
 
@@ -54,8 +57,11 @@ fn initialize_tracing(level: tracing::Level) {
 async fn interceptor(
     request: ServiceRequest,
     next: Next<impl MessageBody>,
-) -> Result<ServiceResponse<impl MessageBody>, actix_web::Error> {
-    let claims = request.extract_claims(CONFIG.token_secret.as_bytes())?;
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+
+    let secret = SecretString::new(CONFIG.token_secret.clone().into_boxed_str());
+
+    let claims = request.extract_claims(&secret)?;
 
     request.extensions_mut().insert(claims.to_owned());
 
