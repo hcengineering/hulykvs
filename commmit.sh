@@ -9,5 +9,5 @@ NAME="final_tears"
 
 # git checkout -b feature/${NAME}
 git add .
-git commit -m "Fix workspace JWT"
+git commit -m "Fix workspace JWT v.2"
 git push origin feature/${NAME}
