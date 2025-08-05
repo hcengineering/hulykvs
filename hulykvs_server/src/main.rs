@@ -17,8 +17,7 @@ use std::pin::Pin;
 
 use actix_cors::Cors;
 use actix_web::{
-    Error,
-    App, HttpMessage, HttpServer,
+    App, Error, HttpMessage, HttpServer,
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
     middleware::{self, Next},
@@ -36,7 +35,6 @@ use config::CONFIG;
 
 use hulyrs::services::jwt::actix::ServiceRequestExt;
 use secrecy::SecretString;
-
 
 pub type Pool = bb8::Pool<PostgresConnectionManager<tokio_postgres::NoTls>>;
 
@@ -58,7 +56,6 @@ async fn interceptor(
     request: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-
     let secret = SecretString::new(CONFIG.token_secret.clone().into_boxed_str());
 
     let claims = request.extract_claims(&secret)?;
@@ -171,9 +168,18 @@ async fn main() -> anyhow::Result<()> {
                 web::scope("/api2")
                     .wrap(middleware::from_fn(interceptor))
                     .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
-                    .route("/{workspace}/{bucket}/{id}", web::get().to(handlers_v2::get))
-                    .route("/{workspace}/{bucket}/{id}", web::put().to(handlers_v2::put))
-                    .route("/{workspace}/{bucket}/{id}", web::delete().to(handlers_v2::delete)),
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::get().to(handlers_v2::get),
+                    )
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::put().to(handlers_v2::put),
+                    )
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::delete().to(handlers_v2::delete),
+                    ),
             )
             .route("/status", web::get().to(async || "ok"))
     })

@@ -16,8 +16,7 @@
 use uuid::Uuid;
 
 use actix_web::{
-    Error, HttpMessage,
-    HttpRequest, HttpResponse, error,
+    Error, HttpMessage, HttpRequest, HttpResponse, error,
     web::{self, Data, Json, Query},
 };
 
@@ -31,13 +30,11 @@ use super::Pool;
 type BucketPath = web::Path<(String, String)>;
 type ObjectPath = web::Path<(String, String, String)>;
 
-
 pub async fn get(
     req: HttpRequest,
     path: ObjectPath,
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-
     workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
@@ -89,14 +86,12 @@ pub async fn get(
     })
 }
 
-
 pub async fn put(
     req: HttpRequest,
     path: ObjectPath,
     pool: Data<Pool>,
     body: web::Bytes,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-
     workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
@@ -112,18 +107,18 @@ pub async fn put(
 
     // header If-None-Match (only *)
     let if_none_match = match req.headers().get("If-None-Match") {
-	Some(value) => {
-    	    let value_str = value.to_str().map_err(|_| {
-        	error::ErrorBadRequest("Invalid If-None-Match header encoding")
-    	    })?;
+        Some(value) => {
+            let value_str = value
+                .to_str()
+                .map_err(|_| error::ErrorBadRequest("Invalid If-None-Match header encoding"))?;
 
-    	    if value_str.trim() == "*" {
-        	true
-    	    } else {
-        	return Err(error::ErrorBadRequest("If-None-Match must be '*'"));
-    	    }
-	}
-	None => false,
+            if value_str.trim() == "*" {
+                true
+            } else {
+                return Err(error::ErrorBadRequest("If-None-Match must be '*'"));
+            }
+        }
+        None => false,
     };
 
     async move || -> anyhow::Result<HttpResponse> {
@@ -153,7 +148,7 @@ pub async fn put(
         // If-Match
         if let Some(if_match) = if_match_header {
             if if_match.trim() == "*" {
-        	// If-Match: *
+                // If-Match: *
                 let result = connection
                     .execute(
                         r#"
@@ -171,7 +166,7 @@ pub async fn put(
                     HttpResponse::NoContent().finish()
                 });
             } else {
-        	// If-Match: some
+                // If-Match: some
                 let old_md5 = hex::decode(if_match.trim())
                     .map_err(|_| anyhow::anyhow!("Invalid hex in If-Match"))?;
 
@@ -182,7 +177,14 @@ pub async fn put(
                         SET md5 = $5, value = $6
                         WHERE workspace = $1 AND namespace = $2 AND key = $3 AND md5 = $4
                         "#,
-                        &[&wsuuid, &nsstr, &keystr, &&old_md5[..], &&new_md5[..], &&body[..]],
+                        &[
+                            &wsuuid,
+                            &nsstr,
+                            &keystr,
+                            &&old_md5[..],
+                            &&new_md5[..],
+                            &&body[..],
+                        ],
                     )
                     .await?;
 
@@ -227,13 +229,11 @@ pub async fn put(
     })
 }
 
-
 pub async fn delete(
     req: HttpRequest,
     path: ObjectPath,
     pool: Data<Pool>,
 ) -> Result<HttpResponse, actix_web::error::Error> {
-
     workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace, key) = path.into_inner();
@@ -295,7 +295,6 @@ pub async fn list(
     pool: Data<Pool>,
     query: Query<ListInfo>,
 ) -> Result<Json<ListResponse>, actix_web::error::Error> {
-
     workspace_owner(&req)?; // Check workspace
 
     let (workspace, namespace) = path.into_inner();
@@ -347,7 +346,6 @@ pub async fn list(
 
 /// Checking workspace in Authorization
 pub fn workspace_owner(req: &HttpRequest) -> Result<(), Error> {
-
     let extensions = req.extensions();
 
     let claims = extensions
@@ -362,14 +360,16 @@ pub fn workspace_owner(req: &HttpRequest) -> Result<(), Error> {
     // else - check workplace
     let jwt_workspace = claims
         .workspace
-	.as_ref()
+        .as_ref()
         .ok_or_else(|| error::ErrorForbidden("Missing workspace in token"))?;
 
-    let path_ws = req.match_info().get("workspace")
+    let path_ws = req
+        .match_info()
+        .get("workspace")
         .ok_or_else(|| error::ErrorBadRequest("Missing workspace in URL path"))?;
 
-    let path_ws_uuid = Uuid::parse_str(path_ws)
-	.map_err(|_| error::ErrorBadRequest("Invalid workspace UUID"))?;
+    let path_ws_uuid =
+        Uuid::parse_str(path_ws).map_err(|_| error::ErrorBadRequest("Invalid workspace UUID"))?;
 
     if jwt_workspace != &path_ws_uuid {
         return Err(error::ErrorForbidden("Workspace mismatch"));
