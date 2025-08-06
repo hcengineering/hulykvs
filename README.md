@@ -91,19 +91,20 @@ The following environment variables are used to configure hulykvs:
    - ```HULY_BIND_HOST```: host to bind the server to (default: 0.0.0.0)
    - ```HULY_BIND_PORT```: port to bind the server to (default: 8094)
    - ```HULY_PAYLOAD_SIZE_LIMIT```: maximum size of the payload (default: 2Mb)
+   - ```HULY_DEFAULT_WORKSPACE_UUID```: default workspace uuid (for old API and DB migration only)
 
 ## Databse DDL
 Database schema is created automatically on startup. Database objects are also created or migrated automatically on startup. 
 
 ## Todo (in no particular order)
 - [ ] Optional value encryption
-- [ ] HEAD request
-- [ ] Conditional update (optimistic locking)
 - [ ] Support for open telemetry
-- [ ] Concurrency control for database migration (several instances of hulykvs are updated at the same time)
 - [ ] TLS support
-- [ ] Namespacee based access control
-- [ ] Liveness/readiness probe endpoint 
+- [ ] Liveness/readiness probe endpoint
+    + Namespacee based access control
+    + Concurrency control for database migration (several instances of hulykvs are updated at the same time)
+    + HEAD request
+    + Conditional update (optimistic locking)
 
 ## Contributing
 Contributions are welcome! Please open an issue or a pull request if you have any suggestions or improvements.

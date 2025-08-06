@@ -5,7 +5,7 @@ clear
 #git push origin --delete feature/insert_update
 #git push origin --delete feature/insert_update_uuid
 
-cargo fmt
+#cargo fmt
 
 NAME="final_tears"
 
