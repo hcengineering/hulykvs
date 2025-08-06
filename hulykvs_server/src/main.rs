@@ -17,7 +17,7 @@ use std::pin::Pin;
 
 use actix_cors::Cors;
 use actix_web::{
-    App, HttpMessage, HttpServer,
+    App, Error, HttpMessage, HttpServer,
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
     middleware::{self, Next},
@@ -29,10 +29,12 @@ use tracing::info;
 
 mod config;
 mod handlers;
-mod token;
+mod handlers_v2;
 
 use config::CONFIG;
-use token::ServiceRequestExt;
+
+use hulyrs::services::jwt::actix::ServiceRequestExt;
+use secrecy::SecretString;
 
 pub type Pool = bb8::Pool<PostgresConnectionManager<tokio_postgres::NoTls>>;
 
@@ -53,8 +55,10 @@ fn initialize_tracing(level: tracing::Level) {
 async fn interceptor(
     request: ServiceRequest,
     next: Next<impl MessageBody>,
-) -> Result<ServiceResponse<impl MessageBody>, actix_web::Error> {
-    let claims = request.extract_claims(CONFIG.token_secret.as_bytes())?;
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    let secret = SecretString::new(CONFIG.token_secret.clone().into_boxed_str());
+
+    let claims = request.extract_claims(&secret)?;
 
     request.extensions_mut().insert(claims.to_owned());
 
@@ -119,7 +123,20 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
         for m in report.applied_migrations().iter() {
-            info!(migration = m.to_string(), "applied migration")
+            // Patch default from Config
+            if m.to_string() == "V4__workspace_uuid" {
+                let sql = format!(
+                    "UPDATE kvs SET workspace = '{}' WHERE workspace = 'f7c9c6d2-81d7-5ff4-9f42-8ab129bb12f0';",
+                    CONFIG.default_workspace_uuid
+                );
+                connection.execute(&sql, &[]).await?;
+                info!(
+                    migration = "f7c9c6d2-81d7-5ff4-9f42-8ab129bb12f0",
+                    "applied migration patch"
+                );
+            }
+
+            info!(migration = m.to_string(), "applied migration");
         }
     }
 
@@ -146,6 +163,23 @@ async fn main() -> anyhow::Result<()> {
                     .route("/{bucket}/{id}", web::get().to(handlers::get))
                     .route("/{bucket}/{id}", web::post().to(handlers::post))
                     .route("/{bucket}/{id}", web::delete().to(handlers::delete)),
+            )
+            .service(
+                web::scope("/api2")
+                    .wrap(middleware::from_fn(interceptor))
+                    .route("/{workspace}/{bucket}", web::get().to(handlers_v2::list))
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::get().to(handlers_v2::get),
+                    )
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::put().to(handlers_v2::put),
+                    )
+                    .route(
+                        "/{workspace}/{bucket}/{id}",
+                        web::delete().to(handlers_v2::delete),
+                    ),
             )
             .route("/status", web::get().to(async || "ok"))
     })
