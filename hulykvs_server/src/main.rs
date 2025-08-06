@@ -131,8 +131,8 @@ async fn main() -> anyhow::Result<()> {
                 );
                 connection.execute(&sql, &[]).await?;
                 info!(
-                    migration = "f7c9c6d2-81d7-5ff4-9f42-8ab129bb12f0",
-                    "applied migration patch"
+                    uuid = %CONFIG.default_workspace_uuid,
+                    "set default workspace"
                 );
             }
 

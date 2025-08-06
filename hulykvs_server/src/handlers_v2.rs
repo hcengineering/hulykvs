@@ -58,13 +58,12 @@ pub async fn get(
 
         let response = match result.as_slice() {
             [] => HttpResponse::NotFound().finish(),
-            // [found] => HttpResponse::Ok().body(found.get::<_, Vec<u8>>("value")),
             [row] => {
                 let value: Vec<u8> = row.get("value");
                 let md5: &[u8] = row.get("md5");
                 let md5_hex = hex::encode(md5);
                 HttpResponse::Ok()
-                    .insert_header(("ETag", md5_hex)) // ETag ? выясмисть
+                    .insert_header(("ETag", md5_hex))
                     .body(value)
             }
             _ => panic!("multiple rows found, unique constraint is probably violated"),
