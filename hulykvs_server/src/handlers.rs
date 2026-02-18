@@ -85,7 +85,7 @@ pub async fn post(
         let statement = r#"
            insert into kvs(workspace, namespace, key, md5, value) 
            values($1, $2, $3, $4, $5)
-           on conflict(workspace, workspace, namespace, key)
+           on conflict(workspace, namespace, key)
            do update set 
             md5=excluded.md5, 
             value=excluded.value
