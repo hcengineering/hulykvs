@@ -71,6 +71,33 @@ You can use the following command to run the image locally:
 docker run -p 8094:8094 -it --rm hardcoreeng/service_hulykvs:{tag}"
 ```
 
+Run from source locally:
+```bash
+cd hulykvs_server
+export HULY_DB_CONNECTION="postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+export HULY_TOKEN_SECRET="secret"
+cargo run --bin hulykvs
+```
+Service endpoint: `http://localhost:8094`
+
+For local CockroachDB instead of PostgreSQL:
+```bash
+export HULY_DB_CONNECTION="postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
+```
+
+## Testing
+Run API test script from the repository root after starting `hulykvs` on `http://localhost:8094`:
+```bash
+cd scripts
+./tests.sh
+```
+
+Prerequisites:
+- `jwt` CLI installed (used by `scripts/token.sh` to sign test tokens)
+- service started with `HULY_TOKEN_SECRET=secret` (or export your value before running tests: `export HULY_TOKEN_SECRET=...`)
+- `scripts/token.sh` prefers `HULY_TOKEN_SECRET` and otherwise reads `token_secret` from `hulykvs_server/src/config/default.toml`
+
+
 If you want to run the service as a part of local huly development environment use the following command:
 ```bash
  export HULY_DB_CONNECTION="postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
@@ -111,8 +138,4 @@ Contributions are welcome! Please open an issue or a pull request if you have an
 
 ## License
 This project is licensed under EPL-2.0
-
-
-
-
 
