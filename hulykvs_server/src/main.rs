@@ -38,7 +38,7 @@ use secrecy::SecretString;
 
 pub type Pool = bb8::Pool<PostgresConnectionManager<tokio_postgres::NoTls>>;
 
-mod migrations_legacy {
+mod migrations_crdb {
     refinery::embed_migrations!("etc/migrations");
 }
 
@@ -147,7 +147,7 @@ async fn main() -> anyhow::Result<()> {
         info!(?backend, "detected database backend");
 
         let report = match backend {
-            DbBackend::Cockroach => migrations_legacy::migrations::runner()
+            DbBackend::Cockroach => migrations_crdb::migrations::runner()
                 .set_migration_table_name("migrations")
                 .run_async(&mut connection)
                 .await?,
