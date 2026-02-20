@@ -1,4 +1,4 @@
-create table kvs (
+create table if not exists kvs (
     namespace text not null,
     key text not null,
     md5 bytea not null,
