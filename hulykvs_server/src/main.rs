@@ -147,14 +147,18 @@ async fn main() -> anyhow::Result<()> {
         info!(?backend, "detected database backend");
 
         let report = match backend {
-            DbBackend::Cockroach => migrations_crdb::migrations::runner()
-                .set_migration_table_name("migrations")
-                .run_async(&mut connection)
-                .await?,
-            DbBackend::Postgres => migrations_pg::migrations::runner()
-                .set_migration_table_name("migrations_pg")
-                .run_async(&mut connection)
-                .await?,
+            DbBackend::Cockroach => {
+                migrations_crdb::migrations::runner()
+                    .set_migration_table_name("migrations")
+                    .run_async(&mut connection)
+                    .await?
+            }
+            DbBackend::Postgres => {
+                migrations_pg::migrations::runner()
+                    .set_migration_table_name("migrations_pg")
+                    .run_async(&mut connection)
+                    .await?
+            }
         };
 
         for m in report.applied_migrations().iter() {
