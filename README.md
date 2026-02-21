@@ -1,6 +1,6 @@
 # Hulykvs
 
-Hulykvs is a simple key-value store service implemented in Rust. It uses cockroachdb as the backend and provides a simple http api for storing and retrieving key-value pairs.
+Hulykvs is a simple key-value store service implemented in Rust. It supports PostgreSQL 15+ and CockroachDB as backends and provides a simple HTTP API for storing and retrieving key-value pairs.
 
 ## API v2
 Create a key-value pair api
@@ -71,12 +71,39 @@ You can use the following command to run the image locally:
 docker run -p 8094:8094 -it --rm hardcoreeng/service_hulykvs:{tag}"
 ```
 
+Run from source locally:
+```bash
+cd hulykvs_server
+export HULY_DB_CONNECTION="postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+export HULY_TOKEN_SECRET="secret"
+cargo run --bin hulykvs
+```
+Service endpoint: `http://localhost:8094`
+
+For local CockroachDB instead of PostgreSQL:
+```bash
+export HULY_DB_CONNECTION="postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
+```
+
+## Testing
+Run API test script from the repository root after starting `hulykvs` on `http://localhost:8094`:
+```bash
+cd scripts
+./tests.sh
+```
+
+Prerequisites:
+- `jwt` CLI installed (used by `scripts/token.sh` to sign test tokens)
+- service started with `HULY_TOKEN_SECRET=secret` (or export your value before running tests: `export HULY_TOKEN_SECRET=...`)
+- `scripts/token.sh` prefers `HULY_TOKEN_SECRET` and otherwise reads `token_secret` from `hulykvs_server/src/config/default.toml`
+
+
 If you want to run the service as a part of local huly development environment use the following command:
 ```bash
  export HULY_DB_CONNECTION="postgresql://root@huly.local:26257/defaultdb?sslmode=disable"
  docker run --rm -it --network dev_default -p 8094:8094 hardcoreeng/service_hulykvs:{tag}
 ```
-This will run Hulykvs in the same network as the rest of huly services, and set the coackroach connection string to the one matching the local dev cockroach instance. 
+This will run Hulykvs in the same network as the rest of huly services, and set the connection string to the local CockroachDB instance used in local Huly development.
 
 You can then access hulykvs at http://localhost:8094.
 
@@ -85,7 +112,7 @@ Hulykvs uses bearer JWT token authetication. At the moment, it will accept any t
 
 ## Configuration
 The following environment variables are used to configure hulykvs:
-   - ```HULY_DB_CONNECTION```: cockroachdb (postgres) connection string (default: postgresql://root@huly.local:26257/defaultdb?sslmode=disable)
+   - ```HULY_DB_CONNECTION```: PostgreSQL-compatible connection string (PostgreSQL 15+ or CockroachDB). Default: `postgresql://root@huly.local:26257/defaultdb?sslmode=disable`
    - ```HULY_DB_SCHEME```: database schema for the key-value store (default: hulykvs)
    - ```HULY_TOKEN_SECRET```: secret used to sign JWT tokens (default: secret)
    - ```HULY_BIND_HOST```: host to bind the server to (default: 0.0.0.0)
@@ -111,9 +138,4 @@ Contributions are welcome! Please open an issue or a pull request if you have an
 
 ## License
 This project is licensed under EPL-2.0
-
-
-
-
-
 

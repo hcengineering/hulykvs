@@ -38,6 +38,20 @@ use secrecy::SecretString;
 
 pub type Pool = bb8::Pool<PostgresConnectionManager<tokio_postgres::NoTls>>;
 
+mod migrations_crdb {
+    refinery::embed_migrations!("etc/migrations");
+}
+
+mod migrations_pg {
+    refinery::embed_migrations!("etc/migrations_pg");
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DbBackend {
+    Cockroach,
+    Postgres,
+}
+
 fn initialize_tracing(level: tracing::Level) {
     use tracing_subscriber::{filter::targets::Targets, prelude::*};
 
@@ -74,12 +88,26 @@ impl bb8::CustomizeConnection<pg::Client, pg::Error> for ConnectionCustomizer {
         client: &'a mut pg::Client,
     ) -> Pin<Box<dyn Future<Output = Result<(), pg::Error>> + Send + 'a>> {
         Box::pin(async {
+            // PostgreSQL does not allow bind parameters in `SET search_path ...`.
             client
-                .execute("set search_path to $1", &[&CONFIG.db_scheme])
-                .await
-                .unwrap();
+                .query_one(
+                    "SELECT pg_catalog.set_config('search_path', $1, false)",
+                    &[&CONFIG.db_scheme],
+                )
+                .await?;
             Ok(())
         })
+    }
+}
+
+async fn detect_db_backend(connection: &pg::Client) -> anyhow::Result<DbBackend> {
+    let row = connection.query_one("select version()", &[]).await?;
+    let version: String = row.get(0);
+
+    if version.contains("CockroachDB") {
+        Ok(DbBackend::Cockroach)
+    } else {
+        Ok(DbBackend::Postgres)
     }
 }
 
@@ -105,9 +133,8 @@ async fn main() -> anyhow::Result<()> {
         .build(manager)
         .await?;
     {
-        refinery::embed_migrations!("etc/migrations");
-
         let mut connection = pool.dedicated_connection().await?;
+        let backend = detect_db_backend(&connection).await?;
 
         // query params cannot be bound in ddl statements
         connection
@@ -117,10 +144,18 @@ async fn main() -> anyhow::Result<()> {
             )
             .await?;
 
-        let report = migrations::runner()
-            .set_migration_table_name("migrations")
-            .run_async(&mut connection)
-            .await?;
+        info!(?backend, "detected database backend");
+
+        let report = match backend {
+            DbBackend::Cockroach => migrations_crdb::migrations::runner()
+                .set_migration_table_name("migrations")
+                .run_async(&mut connection)
+                .await?,
+            DbBackend::Postgres => migrations_pg::migrations::runner()
+                .set_migration_table_name("migrations_pg")
+                .run_async(&mut connection)
+                .await?,
+        };
 
         for m in report.applied_migrations().iter() {
             // Patch default from Config
