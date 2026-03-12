@@ -98,7 +98,7 @@ jobs:
           export HULY_DB_CONNECTION="postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
           export HULY_TOKEN_SECRET="secret"
 
-          ./target/release/hulykvs &
+          ../target/release/hulykvs &
           SERVER_PID=$!
 
           for i in {1..30}; do
@@ -120,7 +120,7 @@ jobs:
           export HULY_DB_CONNECTION="postgresql://root@localhost:26257/defaultdb?sslmode=disable"
           export HULY_TOKEN_SECRET="secret"
 
-          ./target/release/hulykvs &
+          ../target/release/hulykvs &
           SERVER_PID=$!
 
           for i in {1..30}; do
