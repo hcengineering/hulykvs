@@ -74,22 +74,35 @@ jobs:
             start-single-node --insecure --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
 
           echo "Waiting for PostgreSQL..."
+          pg_ok=0
           for i in {1..30}; do
             if PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
               echo "PostgreSQL is up."
+              pg_ok=1
               break
             fi
             sleep 2
           done
+          if [ "$pg_ok" -ne 1 ]; then
+            echo "PostgreSQL did not become ready in time."
+            exit 1
+          fi
 
           echo "Waiting for CockroachDB..."
+          crdb_ok=0
           for i in {1..30}; do
             if docker exec crdb cockroach sql --host=localhost:26257 --insecure -e "SELECT 1" >/dev/null 2>&1; then
               echo "CockroachDB is up."
+              crdb_ok=1
               break
             fi
             sleep 2
           done
+          if [ "$crdb_ok" -ne 1 ]; then
+            echo "CockroachDB did not become ready in time. Container logs:"
+            docker logs crdb || true
+            exit 1
+          fi
 
       - name: Smoke test startup with PostgreSQL
         run: |
@@ -101,13 +114,19 @@ jobs:
           ../target/release/hulykvs &
           SERVER_PID=$!
 
+          ok=0
           for i in {1..30}; do
             if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
               echo "hulykvs started successfully with PostgreSQL."
+              ok=1
               break
             fi
             sleep 2
           done
+          if [ "$ok" -ne 1 ]; then
+            echo "hulykvs did not start successfully with PostgreSQL (no /status response)."
+            exit 1
+          fi
 
           kill "$SERVER_PID" || true
           wait "$SERVER_PID" || true
@@ -123,13 +142,19 @@ jobs:
           ../target/release/hulykvs &
           SERVER_PID=$!
 
+          ok=0
           for i in {1..30}; do
             if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
               echo "hulykvs started successfully with CockroachDB."
+              ok=1
               break
             fi
             sleep 2
           done
+          if [ "$ok" -ne 1 ]; then
+            echo "hulykvs did not start successfully with CockroachDB (no /status response)."
+            exit 1
+          fi
 
           kill "$SERVER_PID" || true
           wait "$SERVER_PID" || true
