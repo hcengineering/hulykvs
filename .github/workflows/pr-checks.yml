@@ -71,7 +71,7 @@ jobs:
           docker run -d --name crdb \
             -p 26257:26257 -p 8080:8080 \
             cockroachdb/cockroach:v24.1.0 \
-            start-single-node --insecure --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+            start-single-node --insecure --listen-addr=localhost:26257 --http-addr=localhost:8080
 
           echo "Waiting for PostgreSQL..."
           pg_ok=0
