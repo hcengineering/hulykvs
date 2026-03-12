@@ -149,6 +149,7 @@ async fn main() -> anyhow::Result<()> {
         let report = match backend {
             DbBackend::Cockroach => {
                 migrations_crdb::migrations::runner()
+                    .set_abort_divergent(false)
                     .set_migration_table_name("migrations")
                     .run_async(&mut connection)
                     .await?

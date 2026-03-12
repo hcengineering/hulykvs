@@ -29,6 +29,137 @@ jobs:
       - name: Tests
         run: cargo test --workspace --all-targets --locked
 
+  db-startup:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build hulykvs server (release)
+        run: cargo build --bin hulykvs --release --locked
+        working-directory: hulykvs_server
+
+      - name: Wait for databases to be ready
+        run: |
+          set -euo pipefail
+
+          echo "Starting CockroachDB container (v24.x, insecure single node)..."
+          docker run -d --name crdb \
+            -p 26257:26257 -p 8089:8080 \
+            cockroachdb/cockroach:latest-v24.3 \
+            start-single-node --insecure
+
+          echo "Waiting for PostgreSQL..."
+          pg_ok=0
+          for i in {1..30}; do
+            if PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+              echo "PostgreSQL is up."
+              pg_ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$pg_ok" -ne 1 ]; then
+            echo "PostgreSQL did not become ready in time."
+            exit 1
+          fi
+
+          echo "Waiting for CockroachDB..."
+          crdb_ok=0
+          for i in {1..30}; do
+            if docker exec crdb cockroach sql --host=localhost:26257 --insecure -e "SELECT 1" >/dev/null 2>&1; then
+              echo "CockroachDB is up."
+              crdb_ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$crdb_ok" -ne 1 ]; then
+            echo "CockroachDB did not become ready in time. Container logs:"
+            docker logs crdb || true
+            exit 1
+          fi
+
+      - name: Smoke test startup with PostgreSQL
+        run: |
+          set -euo pipefail
+
+          export HULY_DB_CONNECTION="postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+          export HULY_TOKEN_SECRET="secret"
+
+          ../target/release/hulykvs &
+          SERVER_PID=$!
+
+          ok=0
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
+              echo "hulykvs started successfully with PostgreSQL."
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "hulykvs did not start successfully with PostgreSQL (no /status response)."
+            exit 1
+          fi
+
+          kill "$SERVER_PID" || true
+          wait "$SERVER_PID" || true
+        working-directory: hulykvs_server
+
+      - name: Smoke test startup with CockroachDB
+        run: |
+          set -euo pipefail
+
+          export HULY_DB_CONNECTION="postgresql://root@127.0.0.1:26257/defaultdb?sslmode=disable"
+          export HULY_TOKEN_SECRET="secret"
+
+          ../target/release/hulykvs &
+          SERVER_PID=$!
+
+          ok=0
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
+              echo "hulykvs started successfully with CockroachDB."
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "hulykvs did not start successfully with CockroachDB (no /status response)."
+            exit 1
+          fi
+
+          kill "$SERVER_PID" || true
+          wait "$SERVER_PID" || true
+        working-directory: hulykvs_server
+
   docker-build-verify:
     runs-on: ubuntu-latest
 
