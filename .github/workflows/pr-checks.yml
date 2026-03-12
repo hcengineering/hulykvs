@@ -47,17 +47,6 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
-      cockroach:
-        image: cockroachdb/cockroach:v24.1.0
-        ports:
-          - 26257:26257
-        command: start-single-node --insecure --listen-addr=0.0.0.0 --http-addr=0.0.0.0:8080
-        options: >-
-          --health-cmd="cockroach node status --host=localhost:26257 --insecure || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,6 +67,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          echo "Starting CockroachDB container..."
+          docker run -d --name crdb \
+            -p 26257:26257 -p 8080:8080 \
+            cockroachdb/cockroach:v24.1.0 \
+            start-single-node --insecure --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+
           echo "Waiting for PostgreSQL..."
           for i in {1..30}; do
             if PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
@@ -89,7 +84,7 @@ jobs:
 
           echo "Waiting for CockroachDB..."
           for i in {1..30}; do
-            if cockroach sql --host=localhost:26257 --insecure -e "SELECT 1" >/dev/null 2>&1; then
+            if docker exec crdb cockroach sql --host=localhost:26257 --insecure -e "SELECT 1" >/dev/null 2>&1; then
               echo "CockroachDB is up."
               break
             fi
