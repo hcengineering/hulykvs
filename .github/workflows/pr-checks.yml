@@ -67,11 +67,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Starting CockroachDB container..."
+          echo "Starting CockroachDB container (v24.x, insecure single node)..."
           docker run -d --name crdb \
-            -p 26257:26257 -p 8080:8080 \
-            cockroachdb/cockroach:v24.1.0 \
-            start-single-node --insecure --listen-addr=localhost:26257 --http-addr=localhost:8080
+            -p 26257:26257 -p 8089:8080 \
+            cockroachdb/cockroach:latest-v24.3 \
+            start-single-node --insecure
 
           echo "Waiting for PostgreSQL..."
           pg_ok=0
@@ -136,7 +136,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          export HULY_DB_CONNECTION="postgresql://root@localhost:26257/defaultdb?sslmode=disable"
+          export HULY_DB_CONNECTION="postgresql://root@127.0.0.1:26257/defaultdb?sslmode=disable"
           export HULY_TOKEN_SECRET="secret"
 
           ../target/release/hulykvs &
