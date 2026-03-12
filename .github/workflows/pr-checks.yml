@@ -29,6 +29,117 @@ jobs:
       - name: Tests
         run: cargo test --workspace --all-targets --locked
 
+  db-startup:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+      cockroach:
+        image: cockroachdb/cockroach:v24.1.0
+        ports:
+          - 26257:26257
+        command: start-single-node --insecure --listen-addr=0.0.0.0 --http-addr=0.0.0.0:8080
+        options: >-
+          --health-cmd="cockroach node status --host=localhost:26257 --insecure || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build hulykvs server (release)
+        run: cargo build --bin hulykvs --release --locked
+        working-directory: hulykvs_server
+
+      - name: Wait for databases to be ready
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for PostgreSQL..."
+          for i in {1..30}; do
+            if PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+              echo "PostgreSQL is up."
+              break
+            fi
+            sleep 2
+          done
+
+          echo "Waiting for CockroachDB..."
+          for i in {1..30}; do
+            if cockroach sql --host=localhost:26257 --insecure -e "SELECT 1" >/dev/null 2>&1; then
+              echo "CockroachDB is up."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Smoke test startup with PostgreSQL
+        run: |
+          set -euo pipefail
+
+          export HULY_DB_CONNECTION="postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+          export HULY_TOKEN_SECRET="secret"
+
+          ./target/release/hulykvs &
+          SERVER_PID=$!
+
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
+              echo "hulykvs started successfully with PostgreSQL."
+              break
+            fi
+            sleep 2
+          done
+
+          kill "$SERVER_PID" || true
+          wait "$SERVER_PID" || true
+        working-directory: hulykvs_server
+
+      - name: Smoke test startup with CockroachDB
+        run: |
+          set -euo pipefail
+
+          export HULY_DB_CONNECTION="postgresql://root@localhost:26257/defaultdb?sslmode=disable"
+          export HULY_TOKEN_SECRET="secret"
+
+          ./target/release/hulykvs &
+          SERVER_PID=$!
+
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8094/status >/dev/null 2>&1; then
+              echo "hulykvs started successfully with CockroachDB."
+              break
+            fi
+            sleep 2
+          done
+
+          kill "$SERVER_PID" || true
+          wait "$SERVER_PID" || true
+        working-directory: hulykvs_server
+
   docker-build-verify:
     runs-on: ubuntu-latest
 
