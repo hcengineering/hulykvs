@@ -148,37 +148,17 @@ async fn main() -> anyhow::Result<()> {
 
         let report = match backend {
             DbBackend::Cockroach => {
-                let runner = migrations_crdb::migrations::runner()
+                migrations_crdb::migrations::runner()
                     .set_migration_table_name("migrations")
-                    .set_abort_divergent(false);
-
-                match runner.run_async(&mut connection).await {
-                    Ok(report) => report,
-                    Err(err) => {
-                        tracing::error!(
-                            %err,
-                            ?backend,
-                            "failed to run CockroachDB migrations; this often means an applied migration in the 'migrations' table differs from the file in 'etc/migrations'. Consider checking the 'migrations' table and the contents of the corresponding SQL file."
-                        );
-                        return Err(err.into());
-                    }
-                }
+                    .set_abort_divergent(false)
+                    .run_async(&mut connection)
+                    .await?
             }
             DbBackend::Postgres => {
-                let runner = migrations_pg::migrations::runner()
-                    .set_migration_table_name("migrations_pg");
-
-                match runner.run_async(&mut connection).await {
-                    Ok(report) => report,
-                    Err(err) => {
-                        tracing::error!(
-                            %err,
-                            ?backend,
-                            "failed to run PostgreSQL migrations; this often means an applied migration in the 'migrations_pg' table differs from the file in 'etc/migrations_pg'. Consider checking the 'migrations_pg' table and the contents of the corresponding SQL file."
-                        );
-                        return Err(err.into());
-                    }
-                }
+                migrations_pg::migrations::runner()
+                    .set_migration_table_name("migrations_pg")
+                    .run_async(&mut connection)
+                    .await?
             }
         };
 
